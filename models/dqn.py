@@ -38,7 +38,8 @@ class DQNAgent(object):
                  batch_size,
                  exp_noise,
                  env_with_dw,
-                 DDQN):
+                 DDQN,
+                 experiment):
         self.q_net = QNet(state_dim, action_dim, (net_width, net_width)).to(device)
         self.q_net_optimizer = torch.optim.Adam(self.q_net.parameters(), lr=lr)
         self.q_target = copy.deepcopy(self.q_net)
@@ -51,6 +52,7 @@ class DQNAgent(object):
         self.exp_noise = exp_noise
         self.action_dim = action_dim
         self.DDQN = DDQN
+        self.experiment = experiment
 
     def select_action(self, state, deterministic):#only used when interact with the env
         with torch.no_grad():
@@ -59,12 +61,12 @@ class DQNAgent(object):
                 a = self.q_net(state).argmax().item()
             else:
                 if np.random.rand() < self.exp_noise:
-                    a = np.random.randint(0,self.action_dim)
+                    a = np.random.randint(0, self.action_dim)
                 else:
                     a = self.q_net(state).argmax().item()
         return a
 
-    def train(self,replay_buffer):
+    def train(self, replay_buffer, iteration):
         s, a, r, s_prime, dw_mask = replay_buffer.sample(self.batch_size)
 
         '''Compute the target Q value'''
@@ -86,6 +88,7 @@ class DQNAgent(object):
         current_q_a = current_q.gather(1,a)
 
         q_loss = F.mse_loss(current_q_a, target_Q)
+        experiment.log_metric("q_loss", q_loss, step=iteration)
         self.q_net_optimizer.zero_grad()
         q_loss.backward()
         self.q_net_optimizer.step()
