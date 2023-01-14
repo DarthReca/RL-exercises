@@ -88,7 +88,7 @@ class DQNAgent(object):
         current_q_a = current_q.gather(1,a)
 
         q_loss = F.mse_loss(current_q_a, target_Q)
-        experiment.log_metric("q_loss", q_loss, step=iteration)
+        self.experiment.log_metric("q_loss", q_loss, step=iteration)
         self.q_net_optimizer.zero_grad()
         q_loss.backward()
         self.q_net_optimizer.step()
