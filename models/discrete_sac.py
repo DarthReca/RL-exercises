@@ -4,10 +4,44 @@ from torch.nn import functional as F
 from torch.distributions.categorical import Categorical
 from utils import conv2d_output_size
 import torch
+from torchvision.transforms.functional import to_tensor
 
 
 def conv_shape(input, kernel_size, stride, padding=0):
     return (input + 2 * padding - kernel_size) // stride + 1
+
+
+class DSACPrepocessNet(nn.Module):
+    def __init__(self, state_shape, n_actions):
+        super(DSACPrepocessNet, self).__init__()
+        self.state_shape = state_shape
+        self.n_actions = n_actions
+
+        w, h, c = self.state_shape
+
+        self.conv1 = nn.Conv2d(
+            in_channels=c, out_channels=32, kernel_size=8, stride=4, padding=0
+        )
+        self.conv2 = nn.Conv2d(
+            in_channels=32, out_channels=64, kernel_size=4, stride=2, padding=0
+        )
+        self.conv3 = nn.Conv2d(
+            in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=0
+        )
+
+        conv1_out = conv2d_output_size((c, h, w), 32, 0, 8, 4)
+        conv2_out = conv2d_output_size(conv1_out, 64, 0, 4, 2)
+        conv3_out = conv2d_output_size(conv2_out, 64, 0, 3, 1)
+
+        self.output_dim = torch.tensor(conv3_out).prod()
+
+    def forward(self, obs, state=None, info={}):
+        if not isinstance(obs, torch.Tensor):
+            obs = torch.stack([to_tensor(x) for x in obs])
+        obs = F.relu(self.conv1(obs))
+        obs = F.relu(self.conv2(obs))
+        obs = F.relu(self.conv3(obs))
+        return obs.contiguous().view(obs.size(0), -1), state
 
 
 class QValueNetwork(nn.Module, ABC):
