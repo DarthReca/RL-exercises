@@ -33,13 +33,23 @@ def train():
         torch.optim.AdamW([starting_alpha], **optim_config),
     )
 
-    actor = models.PolicyNetwork(state_shape, actions_n)
+    actor = discrete.Actor(
+        models.DSACPrepocessNet(state_shape, actions_n), actions_n, hidden_sizes=[512]
+    )
     actor_optim = torch.optim.AdamW(actor.parameters(), **optim_config)
 
-    critic_1 = models.QValueNetwork(state_shape, actions_n)
+    critic_1 = discrete.Critic(
+        models.DSACPrepocessNet(state_shape, actions_n),
+        hidden_sizes=[512],
+        last_size=actions_n,
+    )
     critic_1_optim = torch.optim.AdamW(actor.parameters(), **optim_config)
 
-    critic_2 = models.QValueNetwork(state_shape, actions_n)
+    critic_2 = discrete.Critic(
+        models.DSACPrepocessNet(state_shape, actions_n),
+        hidden_sizes=[512],
+        last_size=actions_n,
+    )
     critic_2_optim = torch.optim.AdamW(actor.parameters(), **optim_config)
 
     dqn = ts.policy.DiscreteSACPolicy(
