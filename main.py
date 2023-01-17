@@ -8,6 +8,7 @@ from tianshou.utils import TensorboardLogger, MovAvg
 from torch.utils.tensorboard import SummaryWriter
 import models
 from math import log
+import os
 
 POLICY_CONFIG = {"gamma": 0.9, "tau": 0.05, "alpha": 0.2}
 
@@ -72,11 +73,14 @@ def train():
 
     # Comet
     experiment = comet_ml.Experiment(api_key="sB2qT71Uklji1EGNlkZ2WhuzL")
-    experiment.set_name(f"{dqn.__class__.__name__}_LunarLander-v2")
+    experiment.set_name(f"{dqn.__class__.__name__}_{env.spec.id}")
     experiment.log_parameters({**POLICY_CONFIG, **optim_config})
     experiment.set_model_graph(dqn)
     # Tensorboard
-    writer = SummaryWriter(f"./logs/lunar-lander/")
+    log_dir = f"logs/{env.spec.id}"
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs("checkpoints", exist_ok=True)
+    writer = SummaryWriter(log_dir)
     writer.add_text("hparams", str({**POLICY_CONFIG, **optim_config}))
     logger = TensorboardLogger(
         writer, train_interval=10, update_interval=10, test_interval=1
